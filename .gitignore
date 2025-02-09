@@ -1,0 +1,96 @@
+# Dependencies
+**/node_modules/
+**/.pnp/
+.pnp.js
+
+# Build outputs
+**/dist/
+**/build/
+**/out/
+**/.next/
+**/tmp/
+**/out-tsc/
+
+# API specific
+shared/uploads/
+shared/converted/
+api/logs/
+api/*.log
+
+# Worker specific
+worker/logs/
+worker/*.log
+
+# Client specific
+client/.angular/
+client/coverage/
+client/.sass-cache/
+client/connect.lock
+client/libpeerconnection.log
+client/testem.log
+client/typings/
+
+# IDE and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+.history/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Environment files
+**/.env
+**/.env.local
+**/.env.*.local
+**/environment.prod.ts
+
+# Debug logs
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/*.log
+
+# Test coverage
+**/coverage/
+**/.nyc_output/
+**/*.lcov
+
+# Media files
+**/*.mp4
+**/*.gif
+
+# Cache
+**/.cache/
+**/.parcel-cache/
+**/.npm
+**/.eslintcache
+**/.stylelintcache
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.* 
+
+# Test files
+api/tests/data/test_me.mp4
+
+# Shared directories
+shared/uploads/
+shared/converted/
