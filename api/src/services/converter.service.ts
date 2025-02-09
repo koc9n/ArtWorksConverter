@@ -94,19 +94,15 @@ export class ConversionService {
       throw new Error('Job not found');
     }
 
-    // Clean up associated files
+    // Clean up converted files, because uploaded files cleaned up on completion of job
     try {
-      const inputPath = path.join(config.storage.uploadsDir, job.data.filename);
       const outputPath = path.join(config.storage.convertedDir, job.data.outputFilename);
 
-      // Delete input file
-      await this.storageService.deleteFile(inputPath);
       // Delete output file
       await this.storageService.deleteFile(outputPath);
 
       console.log('Cleaned up files for job:', {
         jobId,
-        inputPath,
         outputPath
       });
     } catch (error) {
