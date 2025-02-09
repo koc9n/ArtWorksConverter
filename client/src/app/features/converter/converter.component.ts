@@ -1,11 +1,10 @@
 import { Component, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { ConversionService } from '@services/conversion.service';
 import { NotificationService } from '@core/services/notification.service';
-import { interval, Subscription } from 'rxjs';
-import { switchMap, takeWhile } from 'rxjs/operators';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ConversionJob } from '@core/models/conversion.model';
 import { environment } from '@environments/environment';
+import { SafeUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-converter',
@@ -55,13 +54,14 @@ export class ConverterComponent implements OnDestroy {
   conversionCompleted = false;
   error = '';
   gifUrl: SafeUrl | null = null;
-  private statusSubscription?: Subscription;
   currentJob?: ConversionJob;
   private apiUrl = environment.apiUrl;
+  private pollInterval?: number;
 
   constructor(
     private converterService: ConversionService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private router: Router
   ) {}
 
   validateVideo(file: File): Promise<string | null> {
@@ -136,7 +136,8 @@ export class ConverterComponent implements OnDestroy {
 
     this.converterService.startConversion(this.selectedFile).subscribe({
       next: (response: ConversionJob) => {
-        this.pollStatus(response.id);
+        this.currentJob = response;
+        this.startPolling(response.id);
       },
       error: (error) => {
         this.error = error.error?.error || 'Failed to upload file';
@@ -146,42 +147,34 @@ export class ConverterComponent implements OnDestroy {
     });
   }
 
-  private pollStatus(jobId: string) {
-    this.statusSubscription?.unsubscribe();
-    
-    this.statusSubscription = interval(1000).pipe(
-      switchMap(() => this.converterService.getJobStatus(jobId)),
-      takeWhile((status) => {
-        if (status.state === 'completed' || status.state === 'failed') {
-          this.handleCompletion(status);
-          return false;
+  private startPolling(jobId: string) {
+    this.pollInterval = window.setInterval(() => {
+      this.converterService.getJobStatus(jobId).subscribe({
+        next: (job) => {
+          this.currentJob = job;
+          
+          if (job.state === 'completed') {
+            this.stopPolling();
+            this.notificationService.success('Conversion completed successfully');
+            this.router.navigate(['/history']);
+          } else if (job.state === 'failed') {
+            this.stopPolling();
+            this.notificationService.error(job.error || 'Conversion failed');
+          }
+        },
+        error: (error) => {
+          this.stopPolling();
+          this.notificationService.error('Failed to get conversion status');
+          console.error('Status polling error:', error);
         }
-        return true;
-      }, true)
-    ).subscribe({
-      next: (status) => {
-        this.conversionProgress = status.progress || 0;
-        this.currentJob = status as ConversionJob;
-      },
-      error: (error) => {
-        this.error = 'Failed to get conversion status';
-        this.isConverting = false;
-        this.notificationService.error(this.error);
-      }
-    });
+      });
+    }, 1000);
   }
 
-  private handleCompletion(status: ConversionJob) {
-    this.isConverting = false;
-    this.currentJob = status;
-    
-    if (status.state === 'failed') {
-      this.error = status.error || 'Conversion failed';
-      this.notificationService.error(this.error);
-    } else if (status.state === 'completed' && status.result?.outputFilename) {
-      this.conversionCompleted = true;
-      this.conversionProgress = 100;
-      this.notificationService.success('Conversion completed successfully!');
+  private stopPolling() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = undefined;
     }
   }
 
@@ -193,10 +186,10 @@ export class ConverterComponent implements OnDestroy {
     this.error = '';
     this.gifUrl = null;
     this.currentJob = undefined;
-    this.statusSubscription?.unsubscribe();
+    this.stopPolling();
   }
 
   ngOnDestroy() {
-    this.statusSubscription?.unsubscribe();
+    this.stopPolling();
   }
 } 

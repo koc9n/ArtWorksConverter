@@ -12,8 +12,6 @@ export const config = {
   },
   queue: {
     attempts: Number(process.env.QUEUE_ATTEMPTS) || 3,
-    removeOnComplete: process.env.QUEUE_REMOVE_COMPLETE === 'true' || false,
-    removeOnFail: process.env.QUEUE_REMOVE_FAIL === 'true' || false,
     jobTtl: Number(process.env.QUEUE_JOB_TTL) || 24 * 60 * 60 * 1000, // 24 hours in milliseconds
   },
   conversion: {

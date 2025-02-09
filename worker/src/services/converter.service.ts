@@ -9,12 +9,13 @@ export class ConverterService {
       ffmpeg(inputPath)
         .outputOptions([
           '-vf', 'fps=10,scale=-1:400:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
-          '-loop', '0'
+          '-loop', '0',
+          '-preset', 'ultrafast',
         ])
         .toFormat('gif')
         .on('progress', (progress) => {
           if (onProgress) {
-            onProgress(Math.round(progress.percent || 0));
+            onProgress(progress.percent || 0);
           }
         })
         .on('end', () => resolve(outputPath))

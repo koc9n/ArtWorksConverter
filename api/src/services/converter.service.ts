@@ -30,12 +30,14 @@ export class ConversionService {
       const job = await this.queue.add({
         filename,
         outputFilename,
-        userId
+        userId,
       }, {
         attempts: config.queue.attempts,
-        removeOnComplete: config.queue.removeOnComplete,
-        removeOnFail: config.queue.removeOnFail,
-        timeout: config.queue.jobTtl
+        timeout: config.queue.jobTtl,
+        backoff: {
+          type: 'exponential',
+          delay: 1000
+        }
       });
 
       console.log('Queued conversion job:', {
