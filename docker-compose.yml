@@ -1,10 +1,20 @@
+version: "3.8"
+
 services:
   client:
+    image: art-works-converter-client:latest
     build: 
       context: ./client
       dockerfile: Dockerfile
     ports:
       - "4200:4200"
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
     volumes:
       - ./client:/app
       - /app/node_modules
@@ -13,8 +23,11 @@ services:
     command: npm run start
     depends_on:
       - api
+    networks:
+      - frontend
 
   api:
+    image: art-works-converter-api:latest
     build: 
       context: ./api
       dockerfile: Dockerfile
@@ -26,30 +39,65 @@ services:
       - QUEUE_REMOVE_COMPLETE=false
       - QUEUE_REMOVE_FAIL=false
       - QUEUE_JOB_TTL=86400
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
     volumes:
-      - ./shared:/app/shared
+      - shared:/app/shared
     depends_on:
       - redis
       - worker
+    networks:
+      - frontend
+      - backend
 
   worker:
+    image: art-works-converter-worker:latest
     build:
       context: ./worker
       dockerfile: Dockerfile
     deploy:
       mode: replicated
       replicas: 5
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
     environment:
       - REDIS_URL=redis://redis:6379
     volumes:
-      - ./shared:/app/shared
+      - shared:/app/shared
     depends_on:
       - redis
+    networks:
+      - backend
 
   redis:
     image: redis:alpine
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
     ports:
       - "6379:6379"
+    networks:
+      - backend
 
 volumes:
-  shared: 
+  shared:
+    driver: local
+
+networks:
+  frontend:
+  backend: 

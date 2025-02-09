@@ -100,6 +100,89 @@ docker-compose logs -f worker
 docker-compose down
 ```
 
+## Production Deployment
+
+### Prerequisites
+
+- Docker Engine in Swarm mode
+- Docker Compose v3.8+
+- At least 2GB RAM per node
+- Sufficient disk space for video processing
+
+### Deploying to Production
+
+1. Initialize Docker Swarm (on manager node):
+```bash
+docker swarm init
+```
+
+2. Join worker nodes (optional):
+```bash
+# On manager node, get join token
+docker swarm join-token worker
+
+# On worker nodes, use the token to join
+docker swarm join --token <token> <manager-ip>:2377
+```
+
+3. Deploy the stack:
+```bash
+# Build and deploy services
+./deploy-swarm.sh
+
+# Verify deployment
+docker service ls
+```
+
+### Scaling Services
+
+```bash
+# Scale worker service
+docker service scale art-works-converter_worker=10
+
+# Scale API service
+docker service scale art-works-converter_api=3
+```
+
+### Monitoring
+
+```bash
+# Check service status
+docker service ls
+
+# View service logs
+docker service logs art-works-converter_api
+docker service logs art-works-converter_worker
+
+# Check health status
+curl http://localhost:3000/health
+```
+
+### Updating Services
+
+```bash
+# Update the stack with new configurations
+docker stack deploy -c docker-compose.yml art-works-converter
+```
+
+### Troubleshooting
+
+1. Check service status:
+```bash
+docker service ps art-works-converter_worker --no-trunc
+```
+
+2. View detailed logs:
+```bash
+docker service logs art-works-converter_api --tail 100 -f
+```
+
+3. Inspect node status:
+```bash
+docker node ls
+docker node inspect <node-id>
+```
+
 ## Load Testing
 
 The project includes a load testing script to test the API's performance under heavy load.
@@ -113,7 +196,7 @@ The project includes a load testing script to test the API's performance under h
 
 ### Running Load Tests
 
-1. Make sure the API service is running (`docker-compose up api`)
+1. Make sure the API and worker service is running (`docker-compose up api worker`)
 2. Place a test video file at `api/tests/data/test_me.mp4` (should be a small MP4 file)
 3. Run the load test:
 

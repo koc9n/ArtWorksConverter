@@ -47,6 +47,11 @@ app.use('/convert', convertRouter);
 app.use('/auth', authRouter);
 app.use('/admin/queues', serverAdapter.getRouter());
 
+// Health check endpoint
+app.get('/health', (_, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Error handling
 app.use(errorHandler);
 
