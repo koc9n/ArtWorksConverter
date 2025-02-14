@@ -1,103 +1,64 @@
-version: "3.8"
-
 services:
-  client:
-    image: art-works-converter-client:latest
-    build: 
-      context: ./client
+  nginx:
+    image: ${REGISTRY:-localhost}/mp4-to-gif-nginx:${TAG:-latest}
+    build:
+      context: ./nginx
       dockerfile: Dockerfile
     ports:
-      - "4200:4200"
-    deploy:
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
+      - "80:80"
+    networks:
+      - app-network
     volumes:
-      - ./client:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-    command: npm run start
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/conf.d/upload.conf:/etc/nginx/conf.d/upload.conf:ro
     depends_on:
       - api
+      - client
+
+  client:
+    image: ${REGISTRY:-localhost}/mp4-to-gif-client:${TAG:-latest}
+    build:
+      context: ./client
+      dockerfile: Dockerfile
     networks:
-      - frontend
+      - app-network
 
   api:
-    image: art-works-converter-api:latest
-    build: 
+    image: ${REGISTRY:-localhost}/mp4-to-gif-api:${TAG:-latest}
+    build:
       context: ./api
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - QUEUE_ATTEMPTS=3
-      - QUEUE_REMOVE_COMPLETE=false
-      - QUEUE_REMOVE_FAIL=false
-      - QUEUE_JOB_TTL=86400
-    deploy:
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-    volumes:
-      - shared:/app/shared
-    depends_on:
-      - redis
-      - worker
     networks:
-      - frontend
-      - backend
+      - app-network
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - shared-storage:/app/shared
 
   worker:
-    image: art-works-converter-worker:latest
+    image: ${REGISTRY:-localhost}/mp4-to-gif-worker:${TAG:-latest}
     build:
       context: ./worker
       dockerfile: Dockerfile
-    deploy:
-      mode: replicated
-      replicas: 5
-      update_config:
-        parallelism: 2
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
+    networks:
+      - app-network
     environment:
+      - NODE_ENV=development
       - REDIS_URL=redis://redis:6379
     volumes:
-      - shared:/app/shared
-    depends_on:
-      - redis
-    networks:
-      - backend
+      - shared-storage:/app/shared
 
   redis:
     image: redis:alpine
-    deploy:
-      replicas: 1
-      placement:
-        constraints: [node.role == manager]
-      restart_policy:
-        condition: on-failure
-    ports:
-      - "6379:6379"
+    command: redis-server --save "" --appendonly no
     networks:
-      - backend
-
-volumes:
-  shared:
-    driver: local
+      - app-network
 
 networks:
-  frontend:
-  backend: 
+  app-network:
+    driver: bridge
+
+volumes:
+  shared-storage:
+    driver: local

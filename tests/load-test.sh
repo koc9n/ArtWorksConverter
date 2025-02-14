@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-API_URL="http://localhost:3000"
+API_URL="http://localhost/api"
 REQUESTS_PER_MINUTE=1000
 TEST_DURATION_MINUTES=2
 TEST_VIDEO_PATH="$(dirname "$0")/data/test_me.mp4"

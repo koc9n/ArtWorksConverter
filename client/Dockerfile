@@ -1,10 +1,15 @@
-# Development stage
-FROM node:18-alpine
+# Build stage
+FROM node:18-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+RUN npm run build --configuration=production
 
-# Development server
-CMD ["npm", "run", "start"]
-EXPOSE 4200 
+# Production stage
+FROM nginx:alpine
+COPY --from=builder /app/dist/mp4-to-gif-client /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"] 

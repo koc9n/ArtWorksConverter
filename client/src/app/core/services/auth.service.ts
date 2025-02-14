@@ -25,7 +25,6 @@ export class AuthService {
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
   
   constructor(private http: HttpClient) {
-    this.validateTokenOnStartup();
   }
 
   login(email: string): Observable<LoginResponse> {
@@ -93,18 +92,6 @@ export class AuthService {
     this.isAuthenticatedSubject.next(false);
   }
 
-  private validateTokenOnStartup(): void {
-    const token = this.getToken();
-    if (token) {
-      this.validateToken().subscribe({
-        error: () => {
-          // If token validation fails, clear everything
-          this.clearSession();
-        }
-      });
-    }
-  }
-
   checkAuthStatus(): Observable<boolean> {
     const token = localStorage.getItem('token');
     
@@ -112,13 +99,12 @@ export class AuthService {
       return of(false);
     }
 
-    // Let the interceptor handle the token
     return this.http.get<boolean>(`${environment.apiUrl}/auth/validate`).pipe(
       tap(isValid => {
         this.isAuthenticatedSubject.next(isValid);
       }),
       catchError(() => {
-        this.logout();
+        this.clearSession();
         return of(false);
       })
     );
